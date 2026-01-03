@@ -1,4 +1,4 @@
-import './App.css'
+import '../src/styles/App.css'
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import NoPage from './pages/NoPage';
 import Home from './pages/Home';

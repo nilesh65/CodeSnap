@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 import Navbar from '../components/Navbar';
-import FullscreenPreview from '../components/FullScreenPreview'
+import FullscreenPreview from '../components/FullScreenPreview';
 
 import Select from 'react-select';
 import Editor from '@monaco-editor/react';
@@ -18,6 +18,9 @@ import { toast } from 'react-toastify';
 
 import { selectStyles } from '../styles/reactSelect';
 import { generateCode } from '../utils/generateCode';
+
+// Memoize using HOC React.memo
+const MemoEditor = React.memo(Editor);
 
 const FRAMEWORK_OPTIONS = [
   { value: 'html-css', label: 'HTML + CSS' },
@@ -37,6 +40,10 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState('code');
   const [refreshKey, setRefreshKey] = useState(0);
   const [fullscreenPreview, setFullscreenPreview] = useState(false);
+
+ 
+  const frameworkOptions = useMemo(() => FRAMEWORK_OPTIONS, []);
+
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -62,13 +69,13 @@ const Home = () => {
     }
   }, [prompt, framework]);
 
-  const copyCode = async () => {
+  const copyCode = useCallback(async () => {
     if (!code) return toast.error('Nothing to copy');
     await navigator.clipboard.writeText(code);
     toast.success('Copied to clipboard');
-  };
+  }, [code]);
 
-  const downloadCode = () => {
+  const downloadCode = useCallback(() => {
     if (!code) return toast.error('Nothing to download');
 
     const blob = new Blob([code], { type: 'text/html' });
@@ -81,7 +88,11 @@ const Home = () => {
 
     URL.revokeObjectURL(url);
     toast.success('File downloaded');
-  };
+  }, [code]);
+  const showCodeTab = useCallback(() => setActiveTab('code'), []);
+  const showPreviewTab = useCallback(() => setActiveTab('preview'), []);
+  const openFullscreen = useCallback(() => setFullscreenPreview(true), []);
+  const refreshPreview = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   return (
     <>
@@ -101,7 +112,7 @@ const Home = () => {
           <p className="mt-4 font-semibold">Framework</p>
           <Select
             value={framework}
-            options={FRAMEWORK_OPTIONS}
+            options={frameworkOptions}
             onChange={setFramework}
             styles={selectStyles}
           />
@@ -152,7 +163,7 @@ const Home = () => {
             <>
               <div className="flex gap-2 p-2 bg-[var(--tertiary-bg)]">
                 <button
-                  onClick={() => setActiveTab('code')}
+                  onClick={showCodeTab}
                   className={`flex-1 py-2 rounded ${
                     activeTab === 'code' ? 'bg-purple-600' : ''
                   }`}
@@ -160,7 +171,7 @@ const Home = () => {
                   Code
                 </button>
                 <button
-                  onClick={() => setActiveTab('preview')}
+                  onClick={showPreviewTab}
                   className={`flex-1 py-2 rounded ${
                     activeTab === 'preview' ? 'bg-purple-600' : ''
                   }`}
@@ -184,10 +195,10 @@ const Home = () => {
                     </>
                   ) : (
                     <>
-                      <button onClick={() => setFullscreenPreview(true)}>
+                      <button onClick={openFullscreen}>
                         <ImNewTab />
                       </button>
-                      <button onClick={() => setRefreshKey((k) => k + 1)}>
+                      <button onClick={refreshPreview}>
                         <FiRefreshCcw />
                       </button>
                     </>
@@ -196,7 +207,7 @@ const Home = () => {
               </div>
 
               {activeTab === 'code' ? (
-                <Editor
+                <MemoEditor
                   height="100%"
                   theme="vs-dark"
                   language="html"
